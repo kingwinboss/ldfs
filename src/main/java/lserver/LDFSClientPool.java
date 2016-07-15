@@ -3,7 +3,6 @@ package lserver;
 import lclient.ConfigConstants;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
@@ -15,7 +14,7 @@ public class LDFSClientPool {
     private static ThreadLocal<Socket> local = new ThreadLocal<>();
 
     public static Socket getSocketFromPool(String serverHost){
-        return getSocketFromPool(serverHost,ConfigConstants.SERVER_PORT);
+        return getSocketFromPool(serverHost,ConfigConstants.MASTER_SERVER_PORT);
     }
 
     public static Socket getSocketFromPool(String serverHost,int port){

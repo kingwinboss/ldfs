@@ -3,12 +3,11 @@ package lclient;
 import lserver.LDFSClientPool;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Arrays;
 
 /**
- * Class desc：
+ * Class desc：客户端
+ * <li>传输类型定义：byte[0:传输类型,1-270:文件名,271-279:文件大小KB,280-:文件内容]</li>
  * Created by ll
  * 2016/7/14 17:18
  */
@@ -23,37 +22,90 @@ public class LDFSClient {
     }
 
     public LDFSClient(String serverHost){
-        this(serverHost,ConfigConstants.SERVER_PORT);
+        this(serverHost,ConfigConstants.MASTER_SERVER_PORT);
     }
 
-    public void createFile(String path){
-
-    }
-
-    public static void main(String[] args) {
+    public Long createFile(String path){
+        Socket s = LDFSClientPool.getSocketFromPool(serverHost,serverPort);
+        SequenceInputStream sis = null;
+        BufferedOutputStream bos = null;
+        FileInputStream fs = null;
+        ByteArrayInputStream bais = null;
         try {
-            Socket s = LDFSClientPool.getSocketFromPool("192.168.1.12",58888);
-            File file = new File("D:/apache-maven-3.3.3-bin - 副本.rar");
-            FileInputStream fs = new FileInputStream(file);
-            //定义一个256字节的区域来保存文件信息。
-            byte[] b = file.getName().getBytes();
-            byte[] info = Arrays.copyOf(b,256);
-            ByteArrayInputStream bais = new ByteArrayInputStream(info);
+            File file = new File(path);
+            if(!file.exists() || !file.isFile()){
+                return -1l;
+            }
+            fs = new FileInputStream(file);
+            //定义一个280字节的区域来保存文件信息。
+            byte[] info = new byte[ConfigConstants.HEAD_INFO_LENGTH];
+            byte[] transType = ConfigConstants.FILE_TRANSPORT.getBytes();
+            byte[] fileName = file.getName().getBytes();
+            byte[] fileLength = new Long(file.length()/1024).toString().getBytes();
+            System.arraycopy(transType,0,info,0,transType.length);
+            System.arraycopy(fileName,0,info,ConfigConstants.TRANSPORT_TYPE_LENGTH,fileName.length);
+            System.arraycopy(fileLength,0,info,(ConfigConstants.TRANSPORT_TYPE_LENGTH+ConfigConstants.FILE_NAME_LENGTH)
+                    ,fileLength.length);
+            bais = new ByteArrayInputStream(info);
+
             //合并流
-            SequenceInputStream sis = new SequenceInputStream(bais,fs);
-            BufferedOutputStream bos = new BufferedOutputStream(s.getOutputStream());
+            sis = new SequenceInputStream(bais,fs);
+            bos = new BufferedOutputStream(s.getOutputStream());
             byte[] buf = new byte[1024];
             int len = 0;
             while((len = sis.read(buf))!=-1){
                 bos.write(buf,0,len);
             }
-            bos.close();
-            sis.close();
-            fs.close();
-            bais.close();
-
-        } catch (Exception e) {
+            if(s.isConnected() && !s.isClosed()){
+                s.close();
+            }
+            return 1l;
+        } catch (IOException e) {
             e.printStackTrace();
+            return -2l;
+        } finally {
+            closeOutputStream(bos);
+            closeInputStream(sis);
+            closeInputStream(fs);
+            closeInputStream(bais);
         }
+    }
+
+    public void sendMsg(String msg){
+
+    }
+
+    private void closeInputStream(InputStream is){
+        if(is != null){
+            try {
+                is.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void closeOutputStream(OutputStream os){
+        if(os != null){
+            try {
+                os.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        LDFSClient client = new LDFSClient("127.0.0.1");
+        client.createFile("D:/druid-1.0.9.jar");
+        //byte[] info = new byte[280];
+        //byte[] b = new String("1").getBytes();
+        //byte[] fileName = new String("地方大幅度发等等").getBytes();
+        //byte[] fileLength = new Long(1000202002/1024).toString().getBytes();
+        //System.arraycopy(b,0,info,0,b.length);
+        //System.arraycopy(fileName,0,info,1,fileName.length);
+        //System.arraycopy(fileLength,0,info,272,fileLength.length);
+        //System.out.println(new String(info));
+        //System.out.println(new String(info,272,fileLength.length));
     }
 }

@@ -21,7 +21,7 @@ public class LDFSServer {
     public static void main(String[] args) {
         ExecutorService threadpool = Executors.newCachedThreadPool();
         try {
-            ServerSocket ss = new ServerSocket(ConfigConstants.SERVER_PORT);
+            ServerSocket ss = new ServerSocket(ConfigConstants.MASTER_SERVER_PORT);
             while (true) {
                 threadpool.execute(new UploadThread(ss.accept()));
             }
@@ -43,9 +43,13 @@ class UploadThread implements Runnable {
         System.out.println(s.getInetAddress().getHostAddress());
         try {
             BufferedInputStream bis = new BufferedInputStream(s.getInputStream());
-            byte[] info = new byte[256];
-            bis.read(info);
-            String file_name = new String(info).trim();
+            byte[] b1 = new byte[280];
+            bis.read(b1,0,280);
+            System.out.println(new String(b1,0,ConfigConstants.TRANSPORT_TYPE_LENGTH));
+            System.out.println(new String(b1,ConfigConstants.TRANSPORT_TYPE_LENGTH,ConfigConstants.FILE_NAME_LENGTH));
+            System.out.println(new String(b1,(ConfigConstants.TRANSPORT_TYPE_LENGTH+ConfigConstants.FILE_NAME_LENGTH)
+                    ,ConfigConstants.FILE_LENGTH_LENGTH));
+            String file_name = new String(b1,ConfigConstants.TRANSPORT_TYPE_LENGTH,ConfigConstants.FILE_NAME_LENGTH).trim();
             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("E:/"+file_name));
             byte[] buf = new byte[1024];
             int len = 0;
