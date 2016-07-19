@@ -2,8 +2,7 @@ package lmaster;
 
 import lclient.ConfigConstants;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 
 /**
@@ -23,8 +22,16 @@ public class LDSFMaster {
     }
 
     public static void main(String[] args) {
-        File f = new File("E:/l");
-
+        try {
+            File f = new File("E:/l");
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f));
+            String test = "djdifdji非得所属等等 打发打发等等444";
+            byte[] buf = test.getBytes();
+            bos.write(buf);
+            bos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
