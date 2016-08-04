@@ -6,7 +6,7 @@ package lclient;
  * 2016/7/14 18:41
  */
 public interface ConfigConstants {
-    /**主控机监听端口*/
+    /**主控机对外监听端口*/
     int MASTER_SERVER_PORT = 41735;
     /**主控机与数据服务器连接端口*/
     int MASTER_DATASERVER_CONNECT_PORT = 41736;
@@ -22,7 +22,7 @@ public interface ConfigConstants {
     int TRANSPORT_TYPE_LENGTH = 1;
     /**文件名称长度*/
     int FILE_NAME_LENGTH = 270;
-    /**文件长度长度*/
+    /**文件长度*/
     int FILE_LENGTH_LENGTH = 9;
 
 

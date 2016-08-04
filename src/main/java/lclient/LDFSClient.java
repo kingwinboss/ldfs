@@ -97,7 +97,7 @@ public class LDFSClient {
 
     public static void main(String[] args) {
         LDFSClient client = new LDFSClient("127.0.0.1");
-        client.createFile("D:/druid-1.0.9.jar");
+        System.out.println(client.createFile("D:/apache-maven-3.3.3-bin.rar"));
         //byte[] info = new byte[280];
         //byte[] b = new String("1").getBytes();
         //byte[] fileName = new String("地方大幅度发等等").getBytes();
