@@ -2,10 +2,7 @@ package lserver;
 
 import lclient.ConfigConstants;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -20,13 +17,13 @@ public class LDFSServer {
 
     private ServerSocket ss;
 
-    private void startServer(){
+    public void startServer(){
         ExecutorService threadpool = Executors.newCachedThreadPool();
         try {
             ss = new ServerSocket(ConfigConstants.MASTER_SERVER_PORT);
-            //一直监听 否则为传输一次完成后即关闭
-            while (true) {
-                threadpool.execute(new TrastportThread());
+            while(true){
+                Socket s = ss.accept();
+                threadpool.execute(new TrastportThread(s));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -34,28 +31,43 @@ public class LDFSServer {
     }
 
     class TrastportThread implements Runnable{
+        private Socket s;
+        public TrastportThread(Socket s){
+            this.s = s;
+        }
+
         @Override
         public void run() {
             try {
-                Socket s = ss.accept();
                 BufferedInputStream bis = new BufferedInputStream(s.getInputStream());
                 byte[] b1 = new byte[280];
-                bis.read(b1,0,280);
-                System.out.println(new String(b1,0,ConfigConstants.TRANSPORT_TYPE_LENGTH));
-                System.out.println(new String(b1,ConfigConstants.TRANSPORT_TYPE_LENGTH,ConfigConstants.FILE_NAME_LENGTH));
-                System.out.println(new String(b1,(ConfigConstants.TRANSPORT_TYPE_LENGTH+ConfigConstants.FILE_NAME_LENGTH)
-                        ,ConfigConstants.FILE_LENGTH_LENGTH));
-                String file_name = new String(b1,ConfigConstants.TRANSPORT_TYPE_LENGTH,ConfigConstants.FILE_NAME_LENGTH).trim();
-                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("E:/"+file_name));
+                bis.read(b1, 0, 280);
+//                System.out.println(new String(b1,0,ConfigConstants.TRANSPORT_TYPE_LENGTH));
+//                System.out.println(new String(b1,1,ConfigConstants.FILE_LENGTH_LENGTH));
+//                System.out.println(new String(b1,ConfigConstants.FILE_LENGTH_LENGTH,ConfigConstants.FILE_NAME_LENGTH));
+
+                //相对路径及文件名 "fileupload" + "/news/" + ParseDate.parseShortFormat(new Date())+"/文件名";
+                String file_name = new String(b1,ConfigConstants.FILE_LENGTH_LENGTH,ConfigConstants.FILE_NAME_LENGTH,"utf-8").trim();
+                //项目路径
+                String proLocalAddr = Thread.currentThread().getContextClassLoader().getResource("").getPath();
+                proLocalAddr = proLocalAddr.substring(0,proLocalAddr.indexOf("WEB-INF"));
+                //String proLocalAddr = System.getProperty("user.dir").replace("bin", "webapps")+"/upload/";
+                String addr = proLocalAddr + file_name;
+                File dir = new File(addr.substring(0, addr.lastIndexOf("/")));
+                if(!dir.exists()){
+                    dir.mkdirs();
+                }
+                File f = new File(addr);
+                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f));
                 byte[] buf = new byte[1024];
                 int len = 0;
                 while ((len = bis.read(buf)) != -1) {
                     bos.write(buf, 0, len);
                 }
+                bos.flush();
                 bos.close();
                 bis.close();
                 s.close();
-                System.out.println(file_name+"  文件传输成功");
             } catch (IOException e) {
                 e.printStackTrace();
             }

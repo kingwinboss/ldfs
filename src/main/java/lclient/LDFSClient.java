@@ -1,9 +1,10 @@
 package lclient;
 
-import lserver.LDFSClientPool;
+import util.ParseDate;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Date;
 
 /**
  * Class desc：客户端
@@ -16,36 +17,44 @@ public class LDFSClient {
     private String serverHost;
     private int serverPort;
 
+
     public LDFSClient(String serverHost,int serverPort){
         this.serverHost = serverHost;
         this.serverPort = serverPort;
     }
 
     public LDFSClient(String serverHost){
-        this(serverHost,ConfigConstants.MASTER_SERVER_PORT);
+        this(serverHost, ConfigConstants.MASTER_SERVER_PORT);
+
     }
 
-    public Long createFile(String path){
-        Socket s = LDFSClientPool.getSocketFromPool(serverHost,serverPort);
+    /**
+     * 创建文件
+     * @param path
+     * @return 文件路径及名称 ; null：失败
+     */
+    public String createFile(String path){
         SequenceInputStream sis = null;
         BufferedOutputStream bos = null;
         FileInputStream fs = null;
         ByteArrayInputStream bais = null;
         try {
+            Socket s = new Socket(serverHost,serverPort);
             File file = new File(path);
             if(!file.exists() || !file.isFile()){
-                return -1l;
+                return null;
             }
             fs = new FileInputStream(file);
             //定义一个280字节的区域来保存文件信息。
             byte[] info = new byte[ConfigConstants.HEAD_INFO_LENGTH];
             byte[] transType = ConfigConstants.FILE_TRANSPORT.getBytes();
-            byte[] fileName = file.getName().getBytes();
+            //文件路径
+            String absAddr = "fileupload" + "/news/" + ParseDate.parseShortFormat(new Date())+"/";
+            byte[] fileName = (absAddr+file.getName()).getBytes("utf-8");
             byte[] fileLength = new Long(file.length()/1024).toString().getBytes();
             System.arraycopy(transType,0,info,0,transType.length);
-            System.arraycopy(fileName,0,info,ConfigConstants.TRANSPORT_TYPE_LENGTH,fileName.length);
-            System.arraycopy(fileLength,0,info,(ConfigConstants.TRANSPORT_TYPE_LENGTH+ConfigConstants.FILE_NAME_LENGTH)
-                    ,fileLength.length);
+            System.arraycopy(fileLength,0,info,1,fileLength.length);
+            System.arraycopy(fileName,0,info, ConfigConstants.FILE_LENGTH_LENGTH,fileName.length);
             bais = new ByteArrayInputStream(info);
 
             //合并流
@@ -56,13 +65,14 @@ public class LDFSClient {
             while((len = sis.read(buf))!=-1){
                 bos.write(buf,0,len);
             }
+            bos.flush();
             if(s.isConnected() && !s.isClosed()){
                 s.close();
             }
-            return 1l;
+            return absAddr+file.getName();
         } catch (IOException e) {
             e.printStackTrace();
-            return -2l;
+            return null;
         } finally {
             closeOutputStream(bos);
             closeInputStream(sis);
